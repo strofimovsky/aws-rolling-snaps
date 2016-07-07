@@ -12,7 +12,7 @@ Features
 
 Quick start (cron)
 =========
-1. First, install boto3
+- First, install boto3
 
 ```sh
 
@@ -34,9 +34,9 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     region=us-east-1
 ```
 
-2. Mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
+- Mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
 
-3. Configure cron to run the script
+- Configure cron to run the script
 
 ```sh
 
@@ -49,7 +49,91 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     #15 */8 * * * /path-to/makesnap3.py hour
 ```
 
-If you need hourly snaps, just uncomment the last line
+
+Quick start (AWS Lambda)
+=========
+- First, create IAM policy with necessary permissons (sample policy in [makesnapshot-policy.json](makesnapshot-policy.json))
+
+```sh
+export makesnap_policy_arn=`\
+aws iam create-policy \
+    --policy-name makesnap3-policy \
+    --policy-document file://makesnapshot-policy.json \
+    --query 'Policy.Arn' --output text \
+` && echo $makesnap_policy_arn
+```
+
+- Create IAM role for the function to assume ([trust-policy.json](trust-policy.json)), attach our policy and basic Lambda execution policy to it
+
+```sh
+export ebs_snap_role_arn=`\
+aws iam create-role \
+    --role-name ebs-snapshot \
+    --assume-role-policy-document file://trust-policy.json \
+    --query 'Role.Arn' --output text \
+` && echo $ebs_snap_role_arn
+
+aws iam attach-role-policy \
+    --role-name ebs-snapshot \
+    --policy-arn $makesnap_policy_arn
+
+aws iam attach-role-policy \
+    --role-name ebs-snapshot \
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole    
+```
+
+- Create zip file with the script and config file and upload it to Lambda to create function
+
+```sh
+zip deployment.zip makesnap3.py config.json
+export function_arn=` \
+aws lambda create-function \
+    --function-name makesnap3 \
+    --zip-file fileb://deployment.zip \
+    --role $ebs_snap_role_arn  \
+    --handler makesnap3.lambda_handler \
+    --runtime python2.7 \
+    --timeout 15 \
+    --memory-size 128 \
+    --query 'FunctionArn' --output text \
+` && echo $function_arn
+```
+
+- Now, create rules to schedule the function to run:
+
+```sh
+aws events put-rule \
+    --name makesnap-daily \
+    --schedule-expression "cron(30 1 * * ? 1-6)"
+aws events put-targets \
+    --rule makesnap-daily \
+    --targets '{"Id" : "1", "Arn": "'$function_arn'", "Input": "{\"period\": \"day\"}" }'
+
+aws events put-rule \
+    --name makesnap-weekly \
+    --schedule-expression "cron(30 2 * * ? 7)"
+aws events put-targets \
+    --rule makesnap-weekly \
+    --targets '{"Id" : "1", "Arn": "'$function_arn'", "Input": "{\"period\": \"week\"}" }'
+
+aws events put-rule \
+    --name makesnap-monthly \
+    --schedule-expression "cron(30 3 1 * ? *)"
+aws events put-targets \
+    --rule makesnap-monthly \
+    --targets '{"Id" : "1", "Arn": "'$function_arn'", "Input": "{\"period\": \"month\"}" }'
+```
+(even the optional hourly run):
+```sh
+aws events put-rule \
+    --name makesnap-hourly \
+    --schedule-expression "cron(15 */8 * * ? *)"
+aws events put-targets \
+    --rule makesnap-hourly \
+    --targets '{"Id" : "1", "Arn": "'$function_arn'", "Input": "{\"period\": \"hour\"}" }'
+```
+
+- Profit
 
 Credits
 =========
