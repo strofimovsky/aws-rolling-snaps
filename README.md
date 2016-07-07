@@ -14,30 +14,30 @@ Quick start (cron):
 =========
 1. First, install boto3 and set a default region:
 
-.. code-block:: sh
+```sh
 
     $ pip install boto3
-
+```
 Next, set up credentials (in e.g. ``~/.aws/credentials``):
 
-.. code-block:: ini
+```ini
 
     [default]
     aws_access_key_id = YOUR_KEY
     aws_secret_access_key = YOUR_SECRET
-
+```
 Then, set up a default region (in e.g. ``~/.aws/config``):
 
-.. code-block:: ini
+```ini
 
     [default]
     region=us-east-1
-
+```
 2. Mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
 
 3. Configure cron to run the script
 
-.. code-block:: sh
+```sh
 
     $ chmod +x makesnap3.py
     $ crontab 
@@ -46,6 +46,7 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     30 3 1 * *    /path-to/makesnap3.py month
     # optional hourly run
     #15 */8 * * * /path-to/makesnap3.py hour
+```
 
 If you need hourly snaps, just uncomment the line
 
