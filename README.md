@@ -33,6 +33,7 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     [default]
     region=us-east-1
 ```
+
 2. Mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
 
 3. Configure cron to run the script

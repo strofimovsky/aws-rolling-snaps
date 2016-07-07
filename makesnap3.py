@@ -57,12 +57,14 @@ def dump_stats(stats, arn):
 
     if arn:
         try:
+            log.info("Notify SNS: %s", arn)
             sns = boto3.client('sns')
             sns.publish(TopicArn=arn, Subject=subj, Message="\n".join(stat))
         except Exception as err:
             log.error("Can't notify ARN:" + str(sys.exc_info()[0]))
             log.error(err)
-            raise
+            exitcode = 4
+            pass
 
     return exitcode
 
