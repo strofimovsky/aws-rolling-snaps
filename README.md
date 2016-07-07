@@ -1,7 +1,7 @@
 # aws-rolling-snaps
 aws-rolling-snaps is a Python/boto3 script to maintain ZFS-like rolling snapshots for EBS volumes
 
-Features:
+Features
 ========
 - No external dependencies (except boto3)
 - Simple tag based selection, only snapshots volumes that carry [preconfigured] EC2 tag
@@ -10,9 +10,9 @@ Features:
 - Configurable retention policy with reasonable defaults
 - SNS notifications
 
-Quick start (cron):
+Quick start (cron)
 =========
-1. First, install boto3 and set a default region:
+1. First, install boto3
 
 ```sh
 
@@ -40,7 +40,7 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
 ```sh
 
     $ chmod +x makesnap3.py
-    $ crontab 
+    $ crontab -e
     30 1 * * 1-6  /path-to/makesnap3.py day
     30 2 * * 7    /path-to/makesnap3.py week
     30 3 1 * *    /path-to/makesnap3.py month
@@ -48,8 +48,8 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     #15 */8 * * * /path-to/makesnap3.py hour
 ```
 
-If you need hourly snaps, just uncomment the line
+If you need hourly snaps, just uncomment the last line
 
-Credits:
+Credits
 =========
-This script started as a boto3 rewrite of excellent makesnapshot tool (https://github.com/evannuil/aws-snapshot-tool)
+This script started as a boto3 rewrite of the excellent makesnapshot tool (https://github.com/evannuil/aws-snapshot-tool)
