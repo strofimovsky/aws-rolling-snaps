@@ -1,0 +1,5 @@
+{
+    "keep_hour": 5,
+    "arn": "arn:aws:sns:eu-west-1:1234xxxxx:makesnapshot-notify",
+    "log_file": "makesnapshot.log"
+}
