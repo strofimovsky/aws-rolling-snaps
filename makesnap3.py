@@ -179,10 +179,10 @@ def main(period):
 def lambda_handler(event, context):
     period = event.get('period', None)
     if now_format.get(period, None):
-        sys.exit(main(period))
+        return main(period)
     else:
         print("Expecting {'period': '{hour|day|week|month}'} in input event")
-        sys.exit(1)
+        return 1
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and now_format.get(sys.argv[1], None):
