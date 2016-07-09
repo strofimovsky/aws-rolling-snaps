@@ -90,8 +90,8 @@ create_rule () {
         --query Statement.Effect --output text
 }
 
-create_rule makesnap-daily   "cron(30 1 * * ? 1-6)" 1
-create_rule makesnap-weekly  "cron(30 2 * * ? 7)" 2 
+create_rule makesnap-daily   "cron(30 1 ? * MON-SAT *)" 1
+create_rule makesnap-weekly  "cron(30 2 ? * SUN *)" 2 
 create_rule makesnap-monthly "cron(30 3 1 * ? *)" 3
 
 # Uncomment next line to create optional hourly run
