@@ -46,7 +46,7 @@ echo
 echo "... and upload it to Lambda to create function"
 echo "(IAM policy application lags sometimes, we'll sleep for 15 seconds)"
 echo 
-sleep 10
+sleep 15
 
 function_arn=` \
 aws lambda create-function \
