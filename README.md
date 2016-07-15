@@ -1,5 +1,5 @@
 # aws-rolling-snaps
-aws-rolling-snaps is a simple tool to maintain ZFS-like rolling snapshots for EBS volumes
+aws-rolling-snaps is a simple yet powerful tool to maintain ZFS-like rolling snapshots for EBS volumes
 
 Features
 ========
@@ -57,14 +57,14 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
 ~~Quick~~ start (AWS Lambda)
 =========
 
-Setting up Lambda function in AWS is a somewhat cumbersome process, including defining policies, roles, CloudWatch rules, permissions and so on. Please feel free to inspect/modify (schedule times, optional hourly run etc) and then run [lambda-setup.sh](lambda-setup.sh) script for this.
+Setting up Lambda function in AWS is a somewhat cumbersome process, including defining policies, roles, CloudWatch rules, permissions and so on. Please feel free to inspect/modify (schedule times, optional hourly run etc) and then run [lambda-setup.sh](lambda-setup.sh) script for it. In case you feel like doing this multiple times (usually this is the case) there's a cleanup script [lambda-cleanup.sh](lambda-setup.sh).
 
 Don't forget to mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
 
 
 Notes
 =========
-Configurable parameters (cp config.json.sample config.json, and edit):
+- Configurable parameters (cp config.json.sample config.json, and edit):
 ```ini
         'arn':        'arn:aws:sns:eu-west-1:1234xxxxx:yyyyyyy',
         'tag_name': 'MakeSnapshot',
@@ -79,3 +79,4 @@ Configurable parameters (cp config.json.sample config.json, and edit):
 Credits
 =========
 This script started as a boto3 rewrite of the excellent makesnapshot tool (https://github.com/evannuil/aws-snapshot-tool)
+
