@@ -1,21 +1,39 @@
 #!/bin/sh
-if [[ ! -x /usr/local/bin/jq ]]; then
-  echo "this script requires jq"
-else
-  ebspolicyarn="$(aws iam list-policies|jq -r '.Policies[]|select((.PolicyName == "makesnap3-policy"))|.Arn')"
-  functionarn="$(aws events list-targets-by-rule --rule makesnap-daily|jq -r '.Targets[].Arn')"
 
-  aws iam detach-role-policy --role-name ebs-snapshot --policy-arn "$ebspolicyarn"
-  aws iam detach-role-policy --role-name ebs-snapshot --policy-arn "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+ebspolicyarn=`aws iam list-policies --query "Policies[?PolicyName=='makesnap3-policy'].Arn" --output text`
+echo Policy: $ebspolicyarn
+[ -z $ebspolicyarn ] && read -p "press ^C to stop ..." null
 
-  aws iam delete-role --role-name ebs-snapshot
+functionarn=`aws events list-targets-by-rule --rule makesnap-daily --query "Targets[0].Arn" --output=text`
+echo Function: $functionarn
+[ -z $functionarn ] && read -p "press ^C to stop ..." null
 
-  aws iam delete-policy --policy-arn "$ebspolicyarn"
+echo
+echo Deleting roles, policies, function..
+echo
 
-  aws lambda delete-function --function-name makesnap3
+aws iam detach-role-policy --role-name ebs-snapshot --policy-arn "$ebspolicyarn"
+aws iam detach-role-policy --role-name ebs-snapshot --policy-arn "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
-  for period in hourly daily weekly monthly; do
-    aws events remove-targets --rule "makesnap-${period}" --ids 1
-    aws events delete-rule --name "makesnap-${period}"
-  done
-fi
+aws iam delete-role --role-name ebs-snapshot
+
+aws iam delete-policy --policy-arn "$ebspolicyarn"
+
+aws lambda delete-function --function-name makesnap3
+
+echo
+echo Deleting rules
+echo
+
+for period in hourly daily weekly monthly; do
+    echo "makesnap-${period}"
+    aws events list-targets-by-rule --rule makesnap-${period}
+    if [ $? != 0 ]; then
+        echo No makesnap-${period} rule
+    else
+        aws events remove-targets --rule "makesnap-${period}" --ids 1 --query FailedEntryCount --output text
+        aws events delete-rule --name "makesnap-${period}" --query FailedEntries --output text
+    fi
+done
+
+echo Done
