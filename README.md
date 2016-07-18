@@ -76,6 +76,11 @@ Notes
         'log_file': 'makesnapshots.log',
 ```
 
+TODO
+=========
+- Per volume retention policy override with tags (like 'MakeSnapRetention': 'daily:7,weekly:8,monthly:6')
+- CloudFormation template for easy Lambda setup/teardown
+
 Credits
 =========
 This script started as a boto3 rewrite of the excellent makesnapshot tool (https://github.com/evannuil/aws-snapshot-tool)
