@@ -55,7 +55,7 @@ aws lambda create-function \
     --role "$ebs_snap_role_arn"  \
     --handler makesnap3.lambda_handler \
     --runtime python2.7 \
-    --timeout 15 \
+    --timeout 180 \
     --memory-size 128 \
     --query 'FunctionArn' --output text \
 `
