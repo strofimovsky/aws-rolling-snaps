@@ -20,7 +20,8 @@ from datetime import datetime
 
 config_defaults = {
     'tag_name': 'MakeSnapshot', 'tag_value': 'true',
-    'keep_hour': 4, 'keep_day': 3, 'keep_week': 4, 'keep_month': 3
+    'keep_hour': 4, 'keep_day': 3, 'keep_week': 4, 'keep_month': 3,
+    'aws_profile_name':'default'
 }
 
 now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
@@ -101,6 +102,8 @@ def log_setup(logfile):
 def main(period):
     config = read_config('config.json', config_defaults)
     log_setup(config.get('log_file', None))
+
+    boto3.setup_default_session(profile_name=config.get('aws_profile_name', 'default'))
 
     stats = {
         'total_vols': 0, 'total_errors': 0,

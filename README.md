@@ -18,10 +18,10 @@ Quick start (cron)
 - Install boto3
 
 ```sh
-
+    
     $ pip install boto3
 ```
-Next, set up credentials (in e.g. ``~/.aws/credentials``):
+Next, set up credentials (in e.g. ``~/.aws/credentials``). You can use the default profile or use another one. ([More info at AWS CLI documentation](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-multiple-profiles)) :
 
 ```ini
 
@@ -74,6 +74,7 @@ Notes
         'keep_month': 3,
         'keep_hour': 4,
         'log_file': 'makesnapshots.log',
+        'aws_profile_name': 'default'
 ```
 - Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgiure retry on error (if you know - let me know, please).
 
