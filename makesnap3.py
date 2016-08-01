@@ -103,7 +103,11 @@ def main(period):
     config = read_config('config.json', config_defaults)
     log_setup(config.get('log_file', None))
 
-    boto3.setup_default_session(profile_name=config.get('aws_profile_name', 'default'))
+    # Set profile name only if it's explicitly defined if config file
+    # otherwise it messes with the boto's order of credentials search
+    # (environment is not checked)
+    if config.get('aws_profile_name', None):
+        boto3.setup_default_session(profile_name=config.get('aws_profile_name', 'default'))
 
     stats = {
         'total_vols': 0, 'total_errors': 0,
