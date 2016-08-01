@@ -75,8 +75,9 @@ Notes
         'keep_hour': 4,
         'log_file': 'makesnapshots.log',
         'aws_profile_name': 'default'
+        'ec2_region_name': 'us-west-2'
 ```
-- Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgiure retry on error (if you know - let me know, please).
+- Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
 
 TODO
 =========

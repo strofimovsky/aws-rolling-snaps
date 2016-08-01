@@ -114,7 +114,7 @@ def main(period):
     log.info("Started taking %ss snapshots at %s", period,
              datetime.today().strftime('%d-%m-%Y %H:%M:%S'))
     try:
-        ec2 = boto3.resource('ec2')
+        ec2 = boto3.resource('ec2', region_name=config.get('ec2_region_name', None))
         for vol in ec2.volumes.filter(Filters=[{
             'Name': 'tag:' + config['tag_name'], 'Values': [config['tag_value']]
         }]).all():
