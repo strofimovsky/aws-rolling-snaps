@@ -10,6 +10,7 @@ Usage::
     $ makesnap3.py {hour|day|week|month}
 """
 
+import argparse
 import boto3
 import sys
 import re
@@ -99,8 +100,9 @@ def log_setup(logfile):
         log.addHandler(fh)
 
 
-def main(period):
-    config = read_config('config.json', config_defaults)
+def main(period, config_file='config.json'):
+    print(config_file)
+    config = read_config(config_file, config_defaults)
     log_setup(config.get('log_file', None))
 
     # Set profile name only if it's explicitly defined if config file
@@ -194,9 +196,21 @@ def lambda_handler(event, context):
         return 1
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and now_format.get(sys.argv[1], None):
-        period = sys.argv[1]
-        sys.exit(main(period))
+    # period = sys.argv[1]
+
+    # Command Line Args
+    arg_parser = argparse.ArgumentParser(description='')
+    arg_parser.add_argument('-c', '--config', help='configuration file to load', type=str)
+    arg_parser.add_argument('period')
+    args = arg_parser.parse_args()
+    config_file=str(args.config)
+    period=str(args.period)
+
+    if len(sys.argv) > 1 and now_format.get(args.period, None):
+
+        sys.exit(main(period, config_file=config_file))
     else:
         print('Usage: {} {{hour|day|week|month}}'.format(sys.argv[0]))
         sys.exit(1)
+
+
