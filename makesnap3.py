@@ -86,6 +86,29 @@ def read_config(filename, defaults):
         pass
     return new
 
+def get_vols(ec2_resource, tag_name, tag_value, tag_type='volume', running_only=False):
+    print("looking for tags of type %s " % tag_type)
+    if tag_type == 'volume':
+        vols = ec2_resource.volumes.filter(Filters=[{ 'Name': 'tag:' + tag_name, 'Values': [tag_value] }]).all()
+        sys.exit(1)
+        return vols
+    elif tag_type == 'instance':
+        instance_filters = [ { 'Name': 'tag:' + tag_name, 'Values': [tag_value] } ]
+        if running_only:
+            instance_filters.append( { 'Name': 'instance-state-name', 'Values': ['running'] } )
+        instances = ec2_resource.instances.filter(Filters=instance_filters).all()
+
+        instance_ids = []
+        for instance in instances:
+            instance_ids.append(instance.id)
+        vols = ec2_resource.volumes.filter(Filters=[{
+          'Name': 'attachment.instance-id', 'Values': instance_ids
+        }]).all()
+        return vols
+
+    else:
+        print "Invalid tag_type."
+        sys.exit(1)
 
 def log_setup(logfile):
     """Setup console logging by default
@@ -121,9 +144,8 @@ def main(period, config_file='config.json'):
              datetime.today().strftime('%d-%m-%Y %H:%M:%S'))
     try:
         ec2 = boto3.resource('ec2', region_name=config.get('ec2_region_name', None))
-        for vol in ec2.volumes.filter(Filters=[{
-            'Name': 'tag:' + config['tag_name'], 'Values': [config['tag_value']]
-        }]).all():
+        vols = get_vols(ec2_resource=ec2, tag_name=config['tag_name'], tag_value=config['tag_value'], tag_type=config['tag_type'], running_only=config['running_only'])
+        for vol in vols:
             log.info("Processing volume %s:", vol.id)
             stats['total_vols'] += 1
             description = '%(period)s_snapshot %(vol_id)s_%(period)s_%(date_suffix)s by snapshot script at %(date)s' % {
