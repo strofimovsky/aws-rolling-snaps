@@ -22,7 +22,8 @@ from datetime import datetime
 config_defaults = {
     'tag_name': 'MakeSnapshot', 'tag_value': 'true',
     'keep_hour': 4, 'keep_day': 3, 'keep_week': 4, 'keep_month': 3,
-    'aws_profile_name':'default'
+    'aws_profile_name':'default',
+    'tag_type': 'volume'
 }
 
 now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
@@ -101,7 +102,6 @@ def log_setup(logfile):
 
 
 def main(period, config_file='config.json'):
-    print(config_file)
     config = read_config(config_file, config_defaults)
     log_setup(config.get('log_file', None))
 
@@ -207,10 +207,7 @@ if __name__ == '__main__':
     period=str(args.period)
 
     if len(sys.argv) > 1 and now_format.get(args.period, None):
-
         sys.exit(main(period, config_file=config_file))
     else:
         print('Usage: {} {{hour|day|week|month}}'.format(sys.argv[0]))
         sys.exit(1)
-
-
