@@ -27,6 +27,7 @@ config_defaults = {
     'keep_week': 4,
     'keep_month': 3,
     'aws_profile_name': 'default',
+    'running_only': False,
     'tag_type': 'volume'
 }
 
