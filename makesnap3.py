@@ -94,7 +94,6 @@ def get_vols(ec2_resource, tag_name, tag_value, tag_type='volume', running_only=
     print("looking for tags of type %s " % tag_type)
     if tag_type == 'volume':
         vols = ec2_resource.volumes.filter(Filters=[{'Name': 'tag:' + tag_name, 'Values': [tag_value]}]).all()
-        sys.exit(1)
         return vols
     elif tag_type == 'instance':
         instance_filters = [{'Name': 'tag:' + tag_name, 'Values': [tag_value]}]
