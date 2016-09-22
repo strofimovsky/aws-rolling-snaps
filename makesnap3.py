@@ -213,13 +213,14 @@ if __name__ == '__main__':
 
     # Command Line Args
     arg_parser = argparse.ArgumentParser(description='')
-    arg_parser.add_argument('-c', '--config', help='configuration file to load', type=str)
-    arg_parser.add_argument('period')
+    arg_parser.add_argument('-c', '--config', help='configuration file to load', type=str, default='config.json')
+    arg_parser.add_argument('period', choices=['hour', 'day', 'week', 'month'])
     args = arg_parser.parse_args()
+
     config_file = str(args.config)
     period = str(args.period)
 
-    if len(sys.argv) > 1 and now_format.get(args.period, None):
+    if now_format.get(args.period, None):
         sys.exit(main(period, config_file=config_file))
     else:
         print('Usage: {} {{hour|day|week|month}}'.format(sys.argv[0]))
