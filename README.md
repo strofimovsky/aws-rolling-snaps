@@ -13,12 +13,12 @@ Features
 
 Quick start (cron)
 =========
-- (Optional) Create an IAM user to execute the script with the [following policy](makesnapshot-policy.json). If you're impatient or like to live dangerously, you can always resort to running it with AWS root or IAM admin privileges.
+- (Optional) Create an IAM user to execute the script with the [following policy](makesnapshot-policy.json). If you're impatient or like to live dangerously, you can always resort to running it with AWS root or IAM admin privileges.  If you will only snapshot from volume tags, not instances, you can omit the "ec2:DescribeInstances" permission.
 
 - Install boto3
 
 ```sh
-    
+
     $ pip install boto3
 ```
 Next, set up credentials (in e.g. ``~/.aws/credentials``). You can use the default profile or use another one. ([More info at AWS CLI documentation](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-multiple-profiles)) :
@@ -74,7 +74,9 @@ Notes
         'keep_month': 3,
         'keep_hour': 4,
         'log_file': 'makesnapshots.log',
-        'aws_profile_name': 'default'
+        'aws_profile_name': 'default',
+        'tag_type': 'volume',
+        'running_only': false,
         'ec2_region_name': 'us-west-2'
 ```
 - Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
@@ -87,4 +89,3 @@ TODO
 Credits
 =========
 This script started as a boto3 rewrite of the excellent makesnapshot tool (https://github.com/evannuil/aws-snapshot-tool)
-

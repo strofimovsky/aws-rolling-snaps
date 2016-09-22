@@ -10,6 +10,7 @@ Usage::
     $ makesnap3.py {hour|day|week|month}
 """
 
+import argparse
 import boto3
 import sys
 import re
@@ -19,9 +20,15 @@ import logging
 from datetime import datetime
 
 config_defaults = {
-    'tag_name': 'MakeSnapshot', 'tag_value': 'true',
-    'keep_hour': 4, 'keep_day': 3, 'keep_week': 4, 'keep_month': 3,
-    'aws_profile_name':'default'
+    'tag_name': 'MakeSnapshot',
+    'tag_value': 'true',
+    'keep_hour': 4,
+    'keep_day': 3,
+    'keep_week': 4,
+    'keep_month': 3,
+    'aws_profile_name': 'default',
+    'running_only': False,
+    'tag_type': 'volume'
 }
 
 now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
@@ -49,10 +56,8 @@ def dump_stats(stats, arn):
         subj = 'Completed making snapshots'
 
     stat = ['']
-    stat.append("Finished making snapshots at {} for {} volume(s), {} errors".format(
-        datetime.today().strftime('%d-%m-%Y %H:%M:%S'), stats['total_vols'], total))
-    stat.append("Created: {}, deleted: {}, errors: {}".format(
-        stats['snap_creates'], stats['snap_deletes'], stats['snap_errors']))
+    stat.append("Finished making snapshots at {} for {} volume(s), {} errors".format(datetime.today().strftime('%d-%m-%Y %H:%M:%S'), stats['total_vols'], total))
+    stat.append("Created: {}, deleted: {}, errors: {}".format(stats['snap_creates'], stats['snap_deletes'], stats['snap_errors']))
     for s in stat:
         logstats(s)
 
@@ -85,6 +90,30 @@ def read_config(filename, defaults):
     return new
 
 
+def get_vols(ec2_resource, tag_name, tag_value, tag_type='volume', running_only=False):
+    print("looking for tags of type %s " % tag_type)
+    if tag_type == 'volume':
+        vols = ec2_resource.volumes.filter(Filters=[{'Name': 'tag:' + tag_name, 'Values': [tag_value]}]).all()
+        return vols
+    elif tag_type == 'instance':
+        instance_filters = [{'Name': 'tag:' + tag_name, 'Values': [tag_value]}]
+        if running_only:
+            instance_filters.append({'Name': 'instance-state-name', 'Values': ['running']})
+        instances = ec2_resource.instances.filter(Filters=instance_filters).all()
+
+        instance_ids = []
+        for instance in instances:
+            instance_ids.append(instance.id)
+        vols = ec2_resource.volumes.filter(Filters=[
+            {'Name': 'attachment.instance-id', 'Values': instance_ids}
+        ]).all()
+        return vols
+
+    else:
+        print "Invalid tag_type."
+        sys.exit(1)
+
+
 def log_setup(logfile):
     """Setup console logging by default
     if logfile is defined, log there too
@@ -93,14 +122,13 @@ def log_setup(logfile):
     log.setLevel(logging.INFO)
     if logfile:
         fh = logging.FileHandler(logfile)
-        fhf = logging.Formatter(
-            '%(asctime)s %(name)s: %(levelname)s %(message)s')
+        fhf = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s')
         fh.setFormatter(fhf)
         log.addHandler(fh)
 
 
-def main(period):
-    config = read_config('config.json', config_defaults)
+def main(period, config_file='config.json'):
+    config = read_config(config_file, config_defaults)
     log_setup(config.get('log_file', None))
 
     # Set profile name only if it's explicitly defined if config file
@@ -110,18 +138,19 @@ def main(period):
         boto3.setup_default_session(profile_name=config.get('aws_profile_name', 'default'))
 
     stats = {
-        'total_vols': 0, 'total_errors': 0,
-        'snap_deletes': 0, 'snap_creates': 0, 'snap_errors': 0,
+        'total_vols': 0,
+        'total_errors': 0,
+        'snap_deletes': 0,
+        'snap_creates': 0,
+        'snap_errors': 0,
     }
 
     date_suffix = datetime.today().strftime(now_format[period])
-    log.info("Started taking %ss snapshots at %s", period,
-             datetime.today().strftime('%d-%m-%Y %H:%M:%S'))
+    log.info("Started taking %ss snapshots at %s", period, datetime.today().strftime('%d-%m-%Y %H:%M:%S'))
     try:
         ec2 = boto3.resource('ec2', region_name=config.get('ec2_region_name', None))
-        for vol in ec2.volumes.filter(Filters=[{
-            'Name': 'tag:' + config['tag_name'], 'Values': [config['tag_value']]
-        }]).all():
+        vols = get_vols(ec2_resource=ec2, tag_name=config['tag_name'], tag_value=config['tag_value'], tag_type=config['tag_type'], running_only=config['running_only'])
+        for vol in vols:
             log.info("Processing volume %s:", vol.id)
             stats['total_vols'] += 1
             description = '%(period)s_snapshot %(vol_id)s_%(period)s_%(date_suffix)s by snapshot script at %(date)s' % {
@@ -131,47 +160,33 @@ def main(period):
                 'date': datetime.today().strftime('%d-%m-%Y %H:%M:%S')
             }
             try:
-                log.info(
-                    "     Creating snapshot for volume %s: '%s'",
-                    vol.id,
-                    description)
+                log.info("     Creating snapshot for volume %s: '%s'", vol.id, description)
                 current_snap = vol.create_snapshot(Description=description)
                 current_snap.create_tags(Tags=vol.tags)
                 stats['snap_creates'] += 1
             except Exception as err:
                 stats['snap_errors'] += 1
-                log.error("Unexpected error making snapshot:" +
-                          str(sys.exc_info()[0]))
+                log.error("Unexpected error making snapshot:" + str(sys.exc_info()[0]))
                 log.error(err)
                 pass
 
             deletelist = []
             for snap in vol.snapshots.all():
-                if re.findall("^(hour|day|week|month)_snapshot",
-                              snap.description) == [period]:
+                if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
                     deletelist.append(snap)
-                    log.debug(
-                        "     Added to deletelist: %s '%s'",
-                        snap.id,
-                        snap.description)
+                    log.debug("     Added to deletelist: %s '%s'", snap.id, snap.description)
                 else:
-                    log.debug(
-                        "     Skipped, not adding: %s '%s'",
-                        snap.id,
-                        snap.description)
+                    log.debug("     Skipped, not adding: %s '%s'", snap.id, snap.description)
 
             deletelist.sort(key=lambda x: x.start_time)
             for i in range(len(deletelist) - config['keep_' + period]):
-                log.info(
-                    '     Deleting snapshot %s',
-                    deletelist[i].description)
+                log.info('     Deleting snapshot %s', deletelist[i].description)
                 try:
                     deletelist[i].delete()
                     stats['snap_deletes'] += 1
                 except Exception as err:
                     stats['snap_errors'] += 1
-                    log.error("Unexpected error deleting snapshot:" +
-                              str(sys.exc_info()[0]))
+                    log.error("Unexpected error deleting snapshot:" + str(sys.exc_info()[0]))
                     log.error(err)
                     pass
 
@@ -194,9 +209,19 @@ def lambda_handler(event, context):
         return 1
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and now_format.get(sys.argv[1], None):
-        period = sys.argv[1]
-        sys.exit(main(period))
+    # period = sys.argv[1]
+
+    # Command Line Args
+    arg_parser = argparse.ArgumentParser(description='')
+    arg_parser.add_argument('-c', '--config', help='configuration file to load', type=str, default='config.json')
+    arg_parser.add_argument('period', choices=['hour', 'day', 'week', 'month'])
+    args = arg_parser.parse_args()
+
+    config_file = str(args.config)
+    period = str(args.period)
+
+    if now_format.get(args.period, None):
+        sys.exit(main(period, config_file=config_file))
     else:
         print('Usage: {} {{hour|day|week|month}}'.format(sys.argv[0]))
         sys.exit(1)
