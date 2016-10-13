@@ -18,8 +18,9 @@ import time
 import json
 import logging
 from datetime import datetime
+from collections import defaultdict
 
-config_defaults = {
+config_defaults = defaultdict(lambda: None, {
     'tag_name': 'MakeSnapshot',
     'tag_value': 'true',
     'keep_hour': 4,
@@ -28,8 +29,10 @@ config_defaults = {
     'keep_month': 3,
     'aws_profile_name': 'default',
     'running_only': False,
-    'tag_type': 'volume'
-}
+    'tag_type': 'volume',
+    'skip_create': False,
+    'skip_delete': False,
+})
 
 now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
 
@@ -129,13 +132,13 @@ def log_setup(logfile):
 
 def main(period, config_file='config.json'):
     config = read_config(config_file, config_defaults)
-    log_setup(config.get('log_file', None))
+    log_setup(config['log_file'])
 
     # Set profile name only if it's explicitly defined if config file
     # otherwise it messes with the boto's order of credentials search
     # (environment is not checked)
     if config.get('aws_profile_name', None):
-        boto3.setup_default_session(profile_name=config.get('aws_profile_name', 'default'))
+        boto3.setup_default_session(profile_name=(config['aws_profile_name'] or 'default'))
 
     stats = {
         'total_vols': 0,
@@ -148,7 +151,7 @@ def main(period, config_file='config.json'):
     date_suffix = datetime.today().strftime(now_format[period])
     log.info("Started taking %ss snapshots at %s", period, datetime.today().strftime('%d-%m-%Y %H:%M:%S'))
     try:
-        ec2 = boto3.resource('ec2', region_name=config.get('ec2_region_name', None))
+        ec2 = boto3.resource('ec2', region_name=config['ec2_region_name'])
         vols = get_vols(ec2_resource=ec2, tag_name=config['tag_name'], tag_value=config['tag_value'], tag_type=config['tag_type'], running_only=config['running_only'])
         for vol in vols:
             log.info("Processing volume %s:", vol.id)
@@ -159,36 +162,39 @@ def main(period, config_file='config.json'):
                 'date_suffix': date_suffix,
                 'date': datetime.today().strftime('%d-%m-%Y %H:%M:%S')
             }
-            try:
-                log.info("     Creating snapshot for volume %s: '%s'", vol.id, description)
-                current_snap = vol.create_snapshot(Description=description)
-                current_snap.create_tags(Tags=vol.tags)
-                stats['snap_creates'] += 1
-            except Exception as err:
-                stats['snap_errors'] += 1
-                log.error("Unexpected error making snapshot:" + str(sys.exc_info()[0]))
-                log.error(err)
-                pass
 
-            deletelist = []
-            for snap in vol.snapshots.all():
-                if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
-                    deletelist.append(snap)
-                    log.debug("     Added to deletelist: %s '%s'", snap.id, snap.description)
-                else:
-                    log.debug("     Skipped, not adding: %s '%s'", snap.id, snap.description)
-
-            deletelist.sort(key=lambda x: x.start_time)
-            for i in range(len(deletelist) - config['keep_' + period]):
-                log.info('     Deleting snapshot %s', deletelist[i].description)
+            if not config['skip_create']:
                 try:
-                    deletelist[i].delete()
-                    stats['snap_deletes'] += 1
+                    log.info("     Creating snapshot for volume %s: '%s'", vol.id, description)
+                    current_snap = vol.create_snapshot(Description=description)
+                    current_snap.create_tags(Tags=vol.tags)
+                    stats['snap_creates'] += 1
                 except Exception as err:
                     stats['snap_errors'] += 1
-                    log.error("Unexpected error deleting snapshot:" + str(sys.exc_info()[0]))
+                    log.error("Unexpected error making snapshot:" + str(sys.exc_info()[0]))
                     log.error(err)
                     pass
+
+            if not config['skip_delete']:
+                deletelist = []
+                for snap in vol.snapshots.all():
+                    if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
+                        deletelist.append(snap)
+                        log.debug("     Added to deletelist: %s '%s'", snap.id, snap.description)
+                    else:
+                        log.debug("     Skipped, not adding: %s '%s'", snap.id, snap.description)
+
+                deletelist.sort(key=lambda x: x.start_time)
+                for i in range(len(deletelist) - config['keep_' + period]):
+                    log.info('     Deleting snapshot %s', deletelist[i].description)
+                    try:
+                        deletelist[i].delete()
+                        stats['snap_deletes'] += 1
+                    except Exception as err:
+                        stats['snap_errors'] += 1
+                        log.error("Unexpected error deleting snapshot:" + str(sys.exc_info()[0]))
+                        log.error(err)
+                        pass
 
             time.sleep(3)
 
@@ -197,7 +203,7 @@ def main(period, config_file='config.json'):
         log.critical("Can't access volume list:" + str(sys.exc_info()[0]))
         log.critical(err)
 
-    return dump_stats(stats, config.get('arn', None))
+    return dump_stats(stats, config['arn'])
 
 
 def lambda_handler(event, context):
