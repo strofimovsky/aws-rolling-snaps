@@ -38,7 +38,6 @@ now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
 
 log = logging.getLogger('makesnap3')
 
-
 def dump_stats(stats, arn):
     """ Check and log run statistics, notify SNS if ARN is defined
 
@@ -129,6 +128,23 @@ def log_setup(logfile):
         fh.setFormatter(fhf)
         log.addHandler(fh)
 
+def calc_rotate(config, snaplist, period):
+    """ Calculate a list of snapshots to delete in this <period> run
+    """
+    candidates = []
+    for snap in snaplist:
+        if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
+            candidates.append(snap)
+            log.debug("     Added to candidate list: %s '%s'", snap.id, snap.description)
+        else:
+            log.debug("     Skipped, not adding: %s '%s'", snap.id, snap.description)
+    candidates.sort(key=lambda x: x.start_time)
+
+    deletelist = []
+    for i in range(len(candidates) - config['keep_' + period]):
+        deletelist.append(candidates[i])
+
+    return deletelist
 
 def main(period, config_file='config.json'):
     config = read_config(config_file, config_defaults)
@@ -176,19 +192,10 @@ def main(period, config_file='config.json'):
                     pass
 
             if not config['skip_delete']:
-                deletelist = []
-                for snap in vol.snapshots.all():
-                    if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
-                        deletelist.append(snap)
-                        log.debug("     Added to deletelist: %s '%s'", snap.id, snap.description)
-                    else:
-                        log.debug("     Skipped, not adding: %s '%s'", snap.id, snap.description)
-
-                deletelist.sort(key=lambda x: x.start_time)
-                for i in range(len(deletelist) - config['keep_' + period]):
-                    log.info('     Deleting snapshot %s', deletelist[i].description)
+                for del_snap in calc_rotate(config, vol.snapshots.all(), period):
+                    log.info('     Deleting snapshot %s', del_snap.description)
                     try:
-                        deletelist[i].delete()
+                        del_snap.delete()
                         stats['snap_deletes'] += 1
                     except Exception as err:
                         stats['snap_errors'] += 1

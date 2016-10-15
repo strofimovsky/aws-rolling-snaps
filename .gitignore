@@ -2,3 +2,4 @@
 *.zip
 config.json
 *.log
+__pycache__
