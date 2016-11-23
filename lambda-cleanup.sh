@@ -25,7 +25,7 @@ echo
 echo Deleting rules
 echo
 
-for period in hourly daily weekly monthly; do
+for period in hourly daily weekly monthly yearly; do
     echo "makesnap-${period}"
     aws events list-targets-by-rule --rule makesnap-${period}
     if [ $? != 0 ]; then

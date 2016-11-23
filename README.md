@@ -48,8 +48,9 @@ Then, set up a default region (in e.g. ``~/.aws/config``):
     30 1 * * 1-6  /path-to/makesnap3.py day
     30 2 * * 7    /path-to/makesnap3.py week
     30 3 1 * *    /path-to/makesnap3.py month
-    # optional hourly run
+    # optional hourly/yearly runs
     #15 */8 * * * /path-to/makesnap3.py hour
+    #30 4 31 12 * /path-to/makesnap3.py year
 ```
 
 - Profit
@@ -75,17 +76,18 @@ Notes
         'keep_week': 4,
         'keep_month': 3,
         'keep_hour': 4,
+        'keep_year': 10,
         'log_file': 'makesnapshots.log',
         'aws_profile_name': 'default',
         'ec2_region_name': 'us-west-2',
         'skip_create': false,
         'skip_delete': false
 ```
-- Config parameters are read from environment as well. Environment variables `MAKESNAP_<parameter>` (f.e. `MAKESNAP_KEEP_HOUR` etc) are read and applied after config file, overriding the values.
-
-Since Lambdas now support environment variables (https://aws.amazon.com/blogs/aws/new-for-aws-lambda-environment-variables-and-serverless-application-model/), it is a nice way of configuring lambda without bundling a config file.
+- Config parameters are read from environment as well. Environment variables `MAKESNAP_<parameter>` (f.e. `MAKESNAP_KEEP_HOUR` etc) are read and applied after config file, overriding the values. Lambda now supports environment variables (https://aws.amazon.com/blogs/aws/new-for-aws-lambda-environment-variables-and-serverless-application-model/), it is a nice way of configuring lambda without bundling a config file.
 
 - Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
+
+
 TODO
 =========
 - Per volume retention policy override with tags (like 'MakeSnapRetention': 'daily:7,weekly:8,monthly:6')

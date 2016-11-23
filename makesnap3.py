@@ -7,7 +7,7 @@
 
 """Maintain rolling snapshots for EBS volumes
 Usage::
-    $ makesnap3.py {hour|day|week|month}
+    $ makesnap3.py {hour|day|week|month|year}
 """
 
 import argparse
@@ -32,13 +32,20 @@ config_defaults = defaultdict(lambda: None, {
     'keep_day': 3,
     'keep_week': 4,
     'keep_month': 3,
+    'keep_year': 10,
     'skip_create': False,
     'skip_delete': False,
     'log_file': '',
     'arn': '',
 })
 
-now_format = {'hour': '%R', 'day': '%a', 'week': '%U', 'month': '%b'}
+now_format = {
+    'hour': '%R',
+    'day': '%a',
+    'week': '%U',
+    'month': '%b',
+    'year': '%Y'
+}
 
 log = logging.getLogger('makesnap3')
 
@@ -170,7 +177,7 @@ def calc_rotate(config, snaplist, period):
     """
     candidates = []
     for snap in snaplist:
-        if re.findall("^(hour|day|week|month)_snapshot", snap.description) == [period]:
+        if re.findall("^(hour|day|week|month|year)_snapshot", snap.description) == [period]:
             candidates.append(snap)
             log.debug("     Added to candidate list: %s '%s'",
                       snap.id, snap.description)
@@ -269,7 +276,7 @@ def lambda_handler(event, context):
     if now_format.get(period, None):
         return main(period)
     else:
-        print("Expecting {'period': '{hour|day|week|month}'} in input event")
+        print("Expecting {'period': '{hour|day|week|month|year}'} in input event")
         return 1
 
 if __name__ == '__main__':
@@ -279,7 +286,7 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument(
         '-c', '--config', help='configuration file to load', type=str, default='config.json')
-    arg_parser.add_argument('period', choices=['hour', 'day', 'week', 'month'])
+    arg_parser.add_argument('period', choices=['hour', 'day', 'week', 'month', 'year'])
     args = arg_parser.parse_args()
 
     config_file = str(args.config)

@@ -94,8 +94,9 @@ create_rule makesnap-daily   "cron(30 1 ? * MON-SAT *)" 1
 create_rule makesnap-weekly  "cron(30 2 ? * SUN *)" 2 
 create_rule makesnap-monthly "cron(30 3 1 * ? *)" 3
 
-# Uncomment next line to create optional hourly run
+# Uncomment next line(s) to create optional hourly/yearly run(s)
 #create_rule makesnap-hourly  "cron(15 */8 * * ? *)" 4
+#create_rule makesnap-yearly  "cron(30 4 31 12 ? *)" 5
 
 echo
 echo "Profit!"
