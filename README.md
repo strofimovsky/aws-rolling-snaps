@@ -69,20 +69,23 @@ Notes
         'arn':        'arn:aws:sns:eu-west-1:1234xxxxx:yyyyyyy',
         'tag_name': 'MakeSnapshot',
         'tag_value':        'true',
+        'tag_type': 'volume',
+        'running_only': false,
         'keep_day': 3,
         'keep_week': 4,
         'keep_month': 3,
         'keep_hour': 4,
         'log_file': 'makesnapshots.log',
         'aws_profile_name': 'default',
-        'tag_type': 'volume',
-        'running_only': false,
         'ec2_region_name': 'us-west-2',
         'skip_create': false,
         'skip_delete': false
 ```
-- Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
+- Config parameters are read from environment as well. Environment variables `MAKESNAP_<parameter>` (f.e. `MAKESNAP_KEEP_HOUR` etc) are read and applied after config file, overriding the values.
 
+Since Lambdas now support environment variables (https://aws.amazon.com/blogs/aws/new-for-aws-lambda-environment-variables-and-serverless-application-model/), it is a nice way of configuring lambda without bundling a config file.
+
+- Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
 TODO
 =========
 - Per volume retention policy override with tags (like 'MakeSnapRetention': 'daily:7,weekly:8,monthly:6')
