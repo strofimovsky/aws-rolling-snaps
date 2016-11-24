@@ -62,14 +62,13 @@ Setting up Lambda function in AWS is a somewhat cumbersome process, including de
 
 Don't forget to mark EBS volumes that you wish to snapshot with a tag ('MakeSnapshot': 'true' by default)
 
-
-Notes
+Configuration
 =========
-- Configurable parameters (cp config.json.sample config.json, and edit):
+- Configurable parameters:
 ```ini
-        'arn':        'arn:aws:sns:eu-west-1:1234xxxxx:yyyyyyy',
+        'arn': 'arn:aws:sns:eu-west-1:1234xxxxx:yyyyyyy',
         'tag_name': 'MakeSnapshot',
-        'tag_value':        'true',
+        'tag_value': 'true',
         'tag_type': 'volume',
         'running_only': false,
         'keep_day': 3,
@@ -83,10 +82,15 @@ Notes
         'skip_create': false,
         'skip_delete': false
 ```
-- Config parameters are read from environment as well. Environment variables `MAKESNAP_<parameter>` (f.e. `MAKESNAP_KEEP_HOUR` etc) are read and applied after config file, overriding the values. Lambda now supports environment variables (https://aws.amazon.com/blogs/aws/new-for-aws-lambda-environment-variables-and-serverless-application-model/), it is a nice way of configuring lambda without bundling a config file.
+- Configuration is read from 'config.json' file (cp config.json.sample config.json, and edit)
+- Config parameters are also read from the environment. Environment variables `MAKESNAP_<parameter>` (f.e. `MAKESNAP_KEEP_HOUR` etc) are read and applied after config file, overriding the values. Lambda now supports environment variables (https://aws.amazon.com/blogs/aws/new-for-aws-lambda-environment-variables-and-serverless-application-model/), it is a nice way of configuring lambda without bundling a config file.
+- 'tag_type' can be 'volume' or 'instance'. 'instance' type snapshots all of the tagged instance's volumes, no matter tagged or not
+- 'running_only' - when 'tag_type' is set to 'instance' - snapshot only currently running instances' volumes
+- 'skip_create'/'skip_delete' - skip creating/deleting steps. Useful if snapshots are created/deleted by some other means
 
+Notes
+=========
 - Snapshots of busy volumes may take long time. If you have a lot of (or) busy volumes - don't use Lambda. Maximum timeout for Lambda is 300s and there's currently no way to disable or confgure retry on error (if you know - let me know, please).
-
 
 TODO
 =========
