@@ -239,7 +239,8 @@ def main(period, config_file='config.json'):
                     log.info(
                         ">> Creating snapshot for volume %s: '%s'", vol.id, description)
                     current_snap = vol.create_snapshot(Description=description)
-                    current_snap.create_tags(Tags=vol.tags)
+                    if vol.tags is not None:
+                        current_snap.create_tags(Tags=vol.tags)
                     stats['snap_creates'] += 1
                 except Exception as err:
                     stats['snap_errors'] += 1
